@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConsumerEmbed — Consumer Representation Learning | Nestlé Zone Europe</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --nestle-blue: #0066b1;
+            --nestle-dark: #003366;
+            --accent-cyan: #00d4aa;
+            --accent-violet: #7c5cfc;
+            --accent-coral: #ff6b6b;
+            --accent-amber: #ffb347;
+            --bg-deep: #040b14;
+            --bg-card: #0a1628;
+            --bg-elevated: #111f36;
+            --bg-hover: #162a47;
+            --text-primary: #eaf0f9;
+            --text-secondary: #7e94b4;
+            --text-muted: #4a6082;
+            --border: #1a2d4a;
+            --gradient-main: linear-gradient(135deg, #00d4aa 0%, #0066b1 40%, #7c5cfc 100%);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            background-image:
+                radial-gradient(ellipse at 20% 80%, rgba(0, 212, 170, 0.07) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(124, 92, 252, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(0, 102, 177, 0.03) 0%, transparent 70%);
+        }
+        .header {
+            background: rgba(10, 22, 40, 0.85);
+            border-bottom: 1px solid var(--border);
+            padding: 0.7rem 2rem;
+            position: sticky; top: 0; z-index: 100;
+            backdrop-filter: blur(24px);
+        }
+        .header-content {
+            max-width: 1800px; margin: 0 auto;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .logo { display: flex; align-items: center; gap: 0.75rem; }
+        .logo-icon {
+            width: 44px; height: 44px;
+            background: var(--gradient-main);
+            border-radius: 11px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; position: relative;
+        }
+        .logo-icon::after {
+            content: ''; position: absolute; inset: -2px;
+            background: var(--gradient-main);
+            border-radius: 13px; z-index: -1; opacity: 0.4; filter: blur(10px);
+        }
+        .logo-text { font-size: 1.4rem; font-weight: 800; background: var(--gradient-main); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .logo-sub { font-size: 0.58rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 3px; font-weight: 500; }
+        .badges { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+        .badge {
+            background: var(--bg-card); border: 1px solid var(--border);
+            padding: 0.3rem 0.65rem; border-radius: 6px;
+            font-size: 0.62rem; color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .badge.live { background: rgba(0,212,170,0.12); border-color: var(--accent-cyan); color: var(--accent-cyan); }
+        .badge.live::before {
+            content: ''; display: inline-block; width: 6px; height: 6px;
+            background: var(--accent-cyan); border-radius: 50%; margin-right: 5px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+        .main { max-width: 1800px; margin: 0 auto; padding: 1.25rem 2rem; }
+        .hero { text-align: center; margin-bottom: 1.25rem; }
+        .hero h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 0.3rem; background: var(--gradient-main); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero p { color: var(--text-secondary); font-size: 0.95rem; }
+
+        .workspace { display: grid; grid-template-columns: 1fr 400px; gap: 1.2rem; }
+        @media(max-width:1300px){ .workspace{grid-template-columns:1fr;} }
+
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 14px; overflow: hidden;
+        }
+        .card-header {
+            padding: 0.9rem 1.2rem; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            background: linear-gradient(180deg, rgba(17,31,54,0.6) 0%, transparent 100%);
+        }
+        .card-title { font-size: 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+        .card-body { padding: 1.2rem; }
+
+        /* Embedding Canvas */
+        .embed-canvas-wrap {
+            position: relative; background: var(--bg-deep);
+            border-radius: 12px; overflow: hidden;
+            height: 480px; margin-bottom: 1rem;
+            border: 1px solid var(--border);
+        }
+        #embedCanvas { width: 100%; height: 100%; cursor: crosshair; }
+        .canvas-overlay {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: linear-gradient(transparent, rgba(4,11,20,0.92));
+            padding: 1.5rem 1rem 0.8rem;
+            display: flex; justify-content: space-between;
+        }
+        .co-stat { text-align: center; }
+        .co-val { font-size: 1.05rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+        .co-val.cyan { color: var(--accent-cyan); }
+        .co-val.violet { color: var(--accent-violet); }
+        .co-val.coral { color: var(--accent-coral); }
+        .co-val.amber { color: var(--accent-amber); }
+        .co-lbl { font-size: 0.58rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+        .controls { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .ctrl-btn {
+            flex: 1; padding: 0.7rem; background: var(--bg-elevated);
+            border: 1px solid var(--border); border-radius: 10px;
+            color: var(--text-primary); font-family: 'DM Sans', sans-serif;
+            font-size: 0.78rem; font-weight: 600; cursor: pointer;
+            transition: all 0.3s; display: flex; align-items: center;
+            justify-content: center; gap: 0.45rem;
+        }
+        .ctrl-btn:hover { border-color: var(--accent-cyan); background: rgba(0,212,170,0.08); }
+        .ctrl-btn.active { border-color: var(--accent-cyan); background: rgba(0,212,170,0.15); color: var(--accent-cyan); }
+
+        /* Category selector */
+        .categories { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .cat-chip {
+            padding: 0.4rem 0.75rem; border-radius: 20px;
+            font-size: 0.7rem; font-weight: 600; cursor: pointer;
+            border: 1px solid var(--border); background: var(--bg-elevated);
+            color: var(--text-secondary); transition: all 0.3s;
+        }
+        .cat-chip.active { border-color: var(--accent-cyan); background: rgba(0,212,170,0.15); color: var(--accent-cyan); }
+        .cat-chip:hover { border-color: var(--accent-cyan); }
+
+        /* Sidebar panels */
+        .sidebar { display: flex; flex-direction: column; gap: 1rem; }
+        .metric-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 0.5rem; }
+        .metric-box {
+            background: var(--bg-deep); border-radius: 8px; padding: 0.7rem; text-align: center;
+        }
+        .metric-val { font-size: 1.15rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--accent-cyan); }
+        .metric-lbl { font-size: 0.58rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Embedding bar chart */
+        .embed-bars { display: flex; flex-direction: column; gap: 0.4rem; }
+        .embed-bar-row { display: flex; align-items: center; gap: 0.5rem; }
+        .embed-bar-label { font-size: 0.7rem; color: var(--text-secondary); width: 80px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .embed-bar-track { flex: 1; height: 18px; background: var(--bg-deep); border-radius: 4px; overflow: hidden; }
+        .embed-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+        .embed-bar-val { font-size: 0.65rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); width: 36px; }
+
+        /* Consumer log */
+        .consumer-log { max-height: 240px; overflow-y: auto; }
+        .log-item {
+            display: flex; gap: 0.6rem; padding: 0.65rem;
+            background: var(--bg-elevated); border-radius: 9px;
+            margin-bottom: 0.4rem; border-left: 3px solid var(--accent-cyan);
+            animation: slideIn 0.3s ease;
+        }
+        .log-item.high-val { border-left-color: var(--accent-violet); }
+        .log-item.churn-risk { border-left-color: var(--accent-coral); }
+        @keyframes slideIn { from{opacity:0;transform:translateX(-8px);} to{opacity:1;transform:translateX(0);} }
+        .log-avatar {
+            width: 34px; height: 34px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem; font-weight: 700;
+        }
+        .log-body { flex: 1; }
+        .log-name { font-size: 0.78rem; font-weight: 600; }
+        .log-meta { font-size: 0.62rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+        .log-score { font-size: 0.72rem; font-weight: 600; font-family: 'JetBrains Mono', monospace; }
+
+        /* Similarity panel */
+        .sim-matrix { display: grid; grid-template-columns: repeat(6,1fr); gap: 2px; background: var(--bg-deep); border-radius: 8px; padding: 4px; }
+        .sim-cell { aspect-ratio: 1; border-radius: 2px; transition: background 0.4s; }
+
+        /* Processing overlay */
+        .proc-overlay {
+            position: fixed; inset: 0; background: rgba(4,11,20,0.97);
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 1000;
+        }
+        .proc-overlay.active { display: flex; }
+        .embed-anim { width: 100px; height: 100px; margin-bottom: 1.5rem; position: relative; }
+        .embed-dot {
+            position: absolute; width: 12px; height: 12px; border-radius: 50%;
+            animation: orbit 2s ease-in-out infinite;
+        }
+        .embed-dot:nth-child(1) { background: var(--accent-cyan); animation-delay: 0s; }
+        .embed-dot:nth-child(2) { background: var(--accent-violet); animation-delay: 0.3s; }
+        .embed-dot:nth-child(3) { background: var(--accent-coral); animation-delay: 0.6s; }
+        .embed-dot:nth-child(4) { background: var(--accent-amber); animation-delay: 0.9s; }
+        .embed-dot:nth-child(5) { background: var(--nestle-blue); animation-delay: 1.2s; }
+        @keyframes orbit {
+            0%,100%{ transform: translate(44px,44px) scale(0.6); opacity:0.3; }
+            50%{ transform: translate(calc(44px + var(--ox)), calc(44px + var(--oy))) scale(1); opacity:1; }
+        }
+        .embed-dot:nth-child(1){--ox:-30px;--oy:-30px;}
+        .embed-dot:nth-child(2){--ox:30px;--oy:-30px;}
+        .embed-dot:nth-child(3){--ox:30px;--oy:30px;}
+        .embed-dot:nth-child(4){--ox:-30px;--oy:30px;}
+        .embed-dot:nth-child(5){--ox:0px;--oy:-40px;}
+        .proc-text { font-size: 1.05rem; font-weight: 700; margin-bottom: 0.4rem; }
+        .proc-stage { font-size: 0.8rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-bottom: 1.2rem; }
+        .proc-bar-wrap { width: 260px; height: 4px; background: var(--bg-elevated); border-radius: 3px; overflow: hidden; }
+        .proc-bar { height: 100%; background: var(--gradient-main); width: 0%; transition: width 0.3s; }
+
+        .toast {
+            position: fixed; bottom: 1.5rem; right: 1.5rem;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 11px; padding: 0.8rem 1.1rem;
+            display: flex; align-items: center; gap: 0.55rem;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+            transform: translateY(100px); opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4,0,0.2,1); z-index: 1000;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast-icon { font-size: 1.2rem; }
+        .toast-title { font-size: 0.8rem; font-weight: 600; }
+        .toast-msg { font-size: 0.65rem; color: var(--text-muted); }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">🧬</div>
+                <div>
+                    <div class="logo-text">ConsumerEmbed</div>
+                    <div class="logo-sub">Nestlé Zone Europe • Consumer Data Hub</div>
+                </div>
+            </div>
+            <div class="badges">
+                <span class="badge live">Processing</span>
+                <span class="badge">Contrastive Learning</span>
+                <span class="badge">340M+ Records</span>
+                <span class="badge">PyTorch • Databricks</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="hero">
+            <h1>🧬 Consumer Representation Learning</h1>
+            <p>Dense embeddings from multi-category 1st-party data — powering segmentation, LTV & audience intelligence across Nestlé Europe</p>
+        </div>
+
+        <div class="workspace">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">🗺️ Embedding Space (t-SNE Projection)</h3>
+                    <span style="font-size:0.68rem;color:var(--text-muted);font-family:'JetBrains Mono';">dim=128 → 2D</span>
+                </div>
+                <div class="card-body">
+                    <div class="categories" id="categories"></div>
+                    <div class="embed-canvas-wrap">
+                        <canvas id="embedCanvas"></canvas>
+                        <div class="canvas-overlay">
+                            <div class="co-stat"><div class="co-val cyan" id="totalConsumers">0</div><div class="co-lbl">Consumers</div></div>
+                            <div class="co-stat"><div class="co-val violet" id="clusterCount">0</div><div class="co-lbl">Clusters</div></div>
+                            <div class="co-stat"><div class="co-val coral" id="silhouetteScore">—</div><div class="co-lbl">Silhouette</div></div>
+                            <div class="co-stat"><div class="co-val amber" id="epochCount">0</div><div class="co-lbl">Epoch</div></div>
+                        </div>
+                    </div>
+                    <div class="controls">
+                        <button class="ctrl-btn" id="trainBtn" onclick="toggleTraining()">
+                            <span id="trainIcon">▶️</span><span id="trainText">Train Embeddings</span>
+                        </button>
+                        <button class="ctrl-btn" onclick="resetAll()">🔄 Reset</button>
+                        <button class="ctrl-btn" onclick="injectBatch()">📥 Inject Batch</button>
+                        <button class="ctrl-btn" onclick="findSimilar()">🔍 Nearest Neighbors</button>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                        <div style="background:var(--bg-elevated);border-radius:10px;padding:0.9rem;">
+                            <div style="font-size:0.78rem;font-weight:600;margin-bottom:0.6rem;">📊 Embedding Dimensions (Top-8)</div>
+                            <div class="embed-bars" id="embedBars"></div>
+                        </div>
+                        <div style="background:var(--bg-elevated);border-radius:10px;padding:0.9rem;">
+                            <div style="font-size:0.78rem;font-weight:600;margin-bottom:0.6rem;">🔗 Cosine Similarity Matrix</div>
+                            <div class="sim-matrix" id="simMatrix"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">🧠 Model Config</h3></div>
+                    <div class="card-body">
+                        <div style="background:var(--bg-elevated);border-radius:10px;padding:0.9rem;">
+                            <div style="display:flex;align-items:center;gap:0.7rem;margin-bottom:0.85rem;">
+                                <div style="width:44px;height:44px;background:var(--gradient-main);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">🧬</div>
+                                <div>
+                                    <div style="font-size:0.95rem;font-weight:700;">ConsumerEmbed</div>
+                                    <div style="font-size:0.65rem;color:var(--text-muted);font-family:'JetBrains Mono';">v1.3.0 • PyTorch + FAISS</div>
+                                </div>
+                            </div>
+                            <div class="metric-grid">
+                                <div class="metric-box"><div class="metric-val" id="mEmbDim">128</div><div class="metric-lbl">Embed Dim</div></div>
+                                <div class="metric-box"><div class="metric-val" id="mLR">3e-4</div><div class="metric-lbl">Learning Rate</div></div>
+                                <div class="metric-box"><div class="metric-val" id="mLoss">—</div><div class="metric-lbl">Contrastive Loss</div></div>
+                                <div class="metric-box"><div class="metric-val" id="mThroughput">—</div><div class="metric-lbl">Consumers/sec</div></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">👤 Consumer Profiles</h3>
+                        <span style="font-size:0.63rem;color:var(--text-muted);" id="logCount">0 processed</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="consumer-log" id="consumerLog">
+                            <div style="color:var(--text-muted);font-size:0.78rem;text-align:center;padding:1.2rem;">Start training to see consumer embeddings</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">📈 Training Loss</h3></div>
+                    <div class="card-body">
+                        <canvas id="lossCanvas" style="width:100%;height:120px;background:var(--bg-deep);border-radius:8px;"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="proc-overlay" id="procOverlay">
+        <div class="embed-anim">
+            <div class="embed-dot"></div><div class="embed-dot"></div><div class="embed-dot"></div>
+            <div class="embed-dot"></div><div class="embed-dot"></div>
+        </div>
+        <div class="proc-text">Initializing ConsumerEmbed...</div>
+        <div class="proc-stage" id="procStage">Loading consumer data pipeline...</div>
+        <div class="proc-bar-wrap"><div class="proc-bar" id="procBar"></div></div>
+    </div>
+
+    <div class="toast" id="toast">
+        <span class="toast-icon" id="toastIcon">✅</span>
+        <div><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
+    </div>
+
+    <script>
+    const CATEGORIES = [
+        { name: 'Coffee', color: '#8B4513', emoji: '☕' },
+        { name: 'Pet Care', color: '#22c55e', emoji: '🐾' },
+        { name: 'Confectionery', color: '#ec4899', emoji: '🍫' },
+        { name: 'Infant Nutrition', color: '#60a5fa', emoji: '🍼' },
+        { name: 'Culinary', color: '#f59e0b', emoji: '🍳' },
+        { name: 'Health Science', color: '#14b8a6', emoji: '💊' },
+    ];
+    const NAMES = ['Marie L.','Thomas B.','Sophie M.','Lucas D.','Emma R.','Hugo P.','Léa C.','Nathan F.','Camille V.','Jules A.','Chloé G.','Raphaël W.','Manon T.','Théo K.','Jade N.','Maxime S.','Inès H.','Arthur J.','Lola E.','Louis Z.'];
+    const COUNTRIES = ['FR','DE','ES','IT','UK','NL','BE','CH','AT','PT','PL','SE'];
+
+    let isTraining = false, trainInterval = null, epoch = 0, consumers = [], logEntries = [], lossHistory = [];
+    let canvas, ctx, lossCanvas, lossCtx;
+    let activeCategories = new Set(CATEGORIES.map(c => c.name));
+
+    function init() {
+        canvas = document.getElementById('embedCanvas');
+        ctx = canvas.getContext('2d');
+        lossCanvas = document.getElementById('lossCanvas');
+        lossCtx = lossCanvas.getContext('2d');
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        renderCategories();
+        generateInitialConsumers(200);
+        renderCanvas();
+        generateEmbedBars();
+        generateSimMatrix();
+    }
+
+    function resizeCanvas() {
+        const wrap = canvas.parentElement;
+        canvas.width = wrap.clientWidth;
+        canvas.height = wrap.clientHeight;
+        lossCanvas.width = lossCanvas.parentElement.clientWidth;
+        lossCanvas.height = 120;
+    }
+
+    function renderCategories() {
+        const el = document.getElementById('categories');
+        el.innerHTML = CATEGORIES.map(c =>
+            `<div class="cat-chip active" data-cat="${c.name}" onclick="toggleCat(this)" style="--cat-color:${c.color}">${c.emoji} ${c.name}</div>`
+        ).join('');
+    }
+
+    function toggleCat(el) {
+        const cat = el.dataset.cat;
+        if (activeCategories.has(cat)) { activeCategories.delete(cat); el.classList.remove('active'); }
+        else { activeCategories.add(cat); el.classList.add('active'); }
+        renderCanvas();
+    }
+
+    function generateInitialConsumers(n) {
+        for (let i = 0; i < n; i++) consumers.push(createConsumer());
+        document.getElementById('totalConsumers').textContent = consumers.length;
+        document.getElementById('clusterCount').textContent = CATEGORIES.length;
+    }
+
+    function createConsumer() {
+        const cat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+        const clusterCenter = getCategoryCenter(cat.name);
+        const spread = 60 + Math.random() * 40;
+        return {
+            x: clusterCenter.x + (Math.random() - 0.5) * spread,
+            y: clusterCenter.y + (Math.random() - 0.5) * spread,
+            tx: clusterCenter.x + (Math.random() - 0.5) * 30,
+            ty: clusterCenter.y + (Math.random() - 0.5) * 30,
+            category: cat.name,
+            color: cat.color,
+            name: NAMES[Math.floor(Math.random() * NAMES.length)],
+            country: COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)],
+            ltv: Math.floor(50 + Math.random() * 500),
+            radius: 2.5 + Math.random() * 2,
+        };
+    }
+
+    function getCategoryCenter(name) {
+        const idx = CATEGORIES.findIndex(c => c.name === name);
+        const angle = (idx / CATEGORIES.length) * Math.PI * 2 - Math.PI / 2;
+        const r = 140;
+        return {
+            x: (canvas.width / 2) + Math.cos(angle) * r,
+            y: (canvas.height / 2) + Math.sin(angle) * r,
+        };
+    }
+
+    function renderCanvas() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Grid
+        ctx.strokeStyle = 'rgba(26,45,74,0.4)'; ctx.lineWidth = 0.5;
+        for (let x = 0; x < canvas.width; x += 40) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,canvas.height); ctx.stroke(); }
+        for (let y = 0; y < canvas.height; y += 40) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(canvas.width,y); ctx.stroke(); }
+        // Consumers
+        consumers.forEach(c => {
+            if (!activeCategories.has(c.category)) return;
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, c.radius, 0, Math.PI * 2);
+            ctx.fillStyle = c.color + 'cc';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(c.x, c.y, c.radius + 3, 0, Math.PI * 2);
+            ctx.fillStyle = c.color + '18';
+            ctx.fill();
+        });
+        // Category labels
+        CATEGORIES.forEach(cat => {
+            if (!activeCategories.has(cat.name)) return;
+            const center = getCategoryCenter(cat.name);
+            ctx.font = '600 11px "DM Sans"';
+            ctx.fillStyle = cat.color;
+            ctx.textAlign = 'center';
+            ctx.fillText(`${cat.emoji} ${cat.name}`, center.x, center.y - 50);
+        });
+    }
+
+    function toggleTraining() { isTraining ? stopTraining() : startTraining(); }
+
+    function startTraining() {
+        const overlay = document.getElementById('procOverlay');
+        const bar = document.getElementById('procBar');
+        const stage = document.getElementById('procStage');
+        overlay.classList.add('active');
+        const stages = ['Loading consumer data pipeline...','Building contrastive pairs...','Initializing embedding layers...','Compiling FAISS index...','Starting training loop...'];
+        let progress = 0, si = 0;
+        const iv = setInterval(() => {
+            progress += Math.random() * 20 + 8;
+            if (progress > 100) progress = 100;
+            bar.style.width = progress + '%';
+            const ns = Math.floor((progress / 100) * stages.length);
+            if (ns !== si && ns < stages.length) { si = ns; stage.textContent = stages[si]; }
+            if (progress >= 100) {
+                clearInterval(iv);
+                setTimeout(() => { overlay.classList.remove('active'); beginTraining(); }, 250);
+            }
+        }, 80);
+    }
+
+    function beginTraining() {
+        isTraining = true;
+        document.getElementById('trainIcon').textContent = '⏸️';
+        document.getElementById('trainText').textContent = 'Pause Training';
+        document.getElementById('trainBtn').classList.add('active');
+        trainInterval = setInterval(trainStep, 120);
+        showToast('🚀', 'Training Started', 'Contrastive learning active');
+    }
+
+    function trainStep() {
+        epoch++;
+        // Move consumers toward their cluster target
+        consumers.forEach(c => {
+            c.x += (c.tx - c.x) * 0.02;
+            c.y += (c.ty - c.y) * 0.02;
+            c.x += (Math.random() - 0.5) * 1.5;
+            c.y += (Math.random() - 0.5) * 1.5;
+        });
+        const loss = Math.max(0.05, 2.5 * Math.exp(-epoch * 0.008) + Math.random() * 0.08);
+        lossHistory.push(loss);
+        const silhouette = Math.min(0.95, 0.3 + epoch * 0.003 + Math.random() * 0.02);
+        document.getElementById('epochCount').textContent = epoch;
+        document.getElementById('mLoss').textContent = loss.toFixed(3);
+        document.getElementById('silhouetteScore').textContent = silhouette.toFixed(2);
+        document.getElementById('mThroughput').textContent = Math.floor(12000 + Math.random() * 3000);
+        renderCanvas();
+        drawLossChart();
+        if (Math.random() > 0.6) addConsumerLog();
+        if (epoch % 3 === 0) { generateEmbedBars(); generateSimMatrix(); }
+    }
+
+    function stopTraining() {
+        isTraining = false;
+        if (trainInterval) clearInterval(trainInterval);
+        document.getElementById('trainIcon').textContent = '▶️';
+        document.getElementById('trainText').textContent = 'Resume Training';
+        document.getElementById('trainBtn').classList.remove('active');
+        showToast('⏸️', 'Training Paused', `Epoch ${epoch}`);
+    }
+
+    function drawLossChart() {
+        lossCtx.clearRect(0, 0, lossCanvas.width, lossCanvas.height);
+        if (lossHistory.length < 2) return;
+        const w = lossCanvas.width, h = lossCanvas.height;
+        const maxL = Math.max(...lossHistory.slice(0, 20), 2.5);
+        const step = w / Math.max(lossHistory.length - 1, 1);
+        const grad = lossCtx.createLinearGradient(0, 0, w, 0);
+        grad.addColorStop(0, '#00d4aa'); grad.addColorStop(0.5, '#0066b1'); grad.addColorStop(1, '#7c5cfc');
+        lossCtx.strokeStyle = grad; lossCtx.lineWidth = 2; lossCtx.beginPath();
+        lossHistory.forEach((v, i) => {
+            const x = i * step, y = h - (v / maxL) * (h - 10) - 5;
+            i === 0 ? lossCtx.moveTo(x, y) : lossCtx.lineTo(x, y);
+        });
+        lossCtx.stroke();
+        // Fill under
+        lossCtx.lineTo((lossHistory.length - 1) * step, h);
+        lossCtx.lineTo(0, h);
+        lossCtx.closePath();
+        const fillGrad = lossCtx.createLinearGradient(0, 0, 0, h);
+        fillGrad.addColorStop(0, 'rgba(0,212,170,0.15)'); fillGrad.addColorStop(1, 'rgba(0,212,170,0)');
+        lossCtx.fillStyle = fillGrad; lossCtx.fill();
+    }
+
+    function addConsumerLog() {
+        const log = document.getElementById('consumerLog');
+        const cat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+        const name = NAMES[Math.floor(Math.random() * NAMES.length)];
+        const country = COUNTRIES[Math.floor(Math.random() * COUNTRIES.length)];
+        const ltv = Math.floor(50 + Math.random() * 500);
+        const riskLevel = ltv < 100 ? 'churn-risk' : ltv > 350 ? 'high-val' : '';
+        const entry = document.createElement('div');
+        entry.className = `log-item ${riskLevel}`;
+        entry.innerHTML = `
+            <div class="log-avatar" style="background:${cat.color}22;color:${cat.color}">${cat.emoji}</div>
+            <div class="log-body">
+                <div class="log-name">${name} • ${country}</div>
+                <div class="log-meta">${cat.name} • Epoch ${epoch}</div>
+            </div>
+            <div class="log-score" style="color:${ltv>350?'var(--accent-violet)':ltv<100?'var(--accent-coral)':'var(--accent-cyan)'}">€${ltv}</div>
+        `;
+        if (log.firstChild && !log.firstChild.className) log.innerHTML = '';
+        log.insertBefore(entry, log.firstChild);
+        logEntries.unshift(entry);
+        if (logEntries.length > 25) logEntries.pop()?.remove();
+        document.getElementById('logCount').textContent = `${logEntries.length} processed`;
+    }
+
+    function generateEmbedBars() {
+        const dims = ['Purchase Freq','Recency','Category Aff.','Cross-Buy','Loyalty Score','Channel Mix','Promo Sens.','Basket Size'];
+        const el = document.getElementById('embedBars');
+        el.innerHTML = dims.map(d => {
+            const val = (Math.random() * 100).toFixed(0);
+            const colors = ['#00d4aa','#0066b1','#7c5cfc','#ec4899','#f59e0b','#14b8a6','#60a5fa','#22c55e'];
+            const c = colors[dims.indexOf(d) % colors.length];
+            return `<div class="embed-bar-row"><div class="embed-bar-label">${d}</div><div class="embed-bar-track"><div class="embed-bar-fill" style="width:${val}%;background:${c};"></div></div><div class="embed-bar-val">${val}%</div></div>`;
+        }).join('');
+    }
+
+    function generateSimMatrix() {
+        const el = document.getElementById('simMatrix');
+        let cells = '';
+        for (let i = 0; i < 36; i++) {
+            const v = Math.random();
+            const hue = v > 0.6 ? 165 : v > 0.3 ? 220 : 280;
+            const l = 15 + v * 35;
+            cells += `<div class="sim-cell" style="background:hsl(${hue},60%,${l}%)"></div>`;
+        }
+        el.innerHTML = cells;
+    }
+
+    function injectBatch() {
+        const n = 50;
+        for (let i = 0; i < n; i++) consumers.push(createConsumer());
+        document.getElementById('totalConsumers').textContent = consumers.length;
+        renderCanvas();
+        showToast('📥', 'Batch Injected', `+${n} consumers (${consumers.length} total)`);
+    }
+
+    function findSimilar() {
+        showToast('🔍', 'Nearest Neighbors', 'Top-5 similar consumers highlighted');
+    }
+
+    function resetAll() {
+        stopTraining();
+        epoch = 0; consumers = []; logEntries = []; lossHistory = [];
+        document.getElementById('totalConsumers').textContent = '0';
+        document.getElementById('clusterCount').textContent = '0';
+        document.getElementById('silhouetteScore').textContent = '—';
+        document.getElementById('epochCount').textContent = '0';
+        document.getElementById('mLoss').textContent = '—';
+        document.getElementById('mThroughput').textContent = '—';
+        document.getElementById('consumerLog').innerHTML = '<div style="color:var(--text-muted);font-size:0.78rem;text-align:center;padding:1.2rem;">Start training to see consumer embeddings</div>';
+        document.getElementById('logCount').textContent = '0 processed';
+        generateInitialConsumers(200);
+        renderCanvas();
+        lossCtx.clearRect(0, 0, lossCanvas.width, lossCanvas.height);
+        showToast('🔄', 'Reset Complete', 'All data cleared');
+    }
+
+    function showToast(icon, title, msg) {
+        document.getElementById('toastIcon').textContent = icon;
+        document.getElementById('toastTitle').textContent = title;
+        document.getElementById('toastMsg').textContent = msg;
+        const t = document.getElementById('toast');
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3000);
+    }
+
+    init();
+    </script>
+</body>
+</html>
